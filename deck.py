@@ -41,3 +41,7 @@ class Deck:
         card = random.choice(self.deck)
         self.deck.remove(card)
         return card
+
+
+    def __len__(self):
+        return len(self.deck)

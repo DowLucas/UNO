@@ -8,6 +8,5 @@ class Player:
     def addCard(self, card):
         self.hand.append(card)
 
-    @property
-    def num_cards(self):
+    def __len__(self):
         return len(self.hand)
