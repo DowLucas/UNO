@@ -1,5 +1,6 @@
 from deck import Deck
 from player import Player
+import re
 
 import random
 
@@ -10,11 +11,14 @@ class Game:
         self.reversed = False
         self.current_color = None
         self.pickup_card_played = False
+        self.pick_up_multiplier = 1
 
         self.discard_pile = []
         self.current_card = None
         self.players = {i: Player() for i in range(1, num_players+1)}
         self.deck = Deck()
+
+
 
 
         self.startGame()
@@ -28,26 +32,54 @@ class Game:
 
         self.current_card = self.deck.pullCard()
         self.current_color = self.current_card.color
+        
+        if self.current_card == None:
+            self.current_card = random.choice(self.deck.colors)
+
+        
         self.number_player_turn = random.randint(1, self.num_players)
 
 
     def playerSelectCard(self, hand):
+
+
         pick_up_card = self._handCheck(hand)
+
         if pick_up_card != None:
             return pick_up_card
 
-        card_index = input("Card number: ")
-        try:
-            card_index = int(card_index)
-        except:
-            self.playerSelectCard(hand)
+        if pick_up_card is False:
+            return False
+
+
+        d = {i: self.CheckIfCardCanBePlaced(card) for i, card in hand.items()}
+        d[-1] = False
+        card_index = -1
+
+
+        while d[card_index] != True:
+            card_index = input("Card number: ")
+
+            if card_index.isdigit():
+                print("Match")
+            else:
+                card_index = -1
+                continue
+
+
+            try:
+                card_index = int(card_index)
+            except:
+                card_index = -1
+                continue
+            print("Invalid card index\n")
+
 
         try:
-            print(card_index, hand[card_index])
             if self.CheckIfCardCanBePlaced(hand[card_index]):
                 return hand[card_index]
             else:
-                print(f"You cannot play {hand[card_index].toString()}")
+                print(f"\nYou cannot play {hand[card_index].toString()}\n")
                 self.playerSelectCard(hand)
         except:
             print("Invalid card number")
@@ -69,28 +101,42 @@ class Game:
             self.pickup_card_played = True
             return True
         else:
+            self.pickup_card_played = False
             return False
 
     def selectNextPlayer(self, card):
+        if card == False:
+            new_player_index = self.number_player_turn + 1 if not self.reversed else self.number_player_turn - 1
+            if new_player_index > len(self.players):
+                self.number_player_turn = 1
+            elif new_player_index < 1:
+                 self.number_player_turn = len(self.players)+1
+            else:
+                self.number_player_turn = new_player_index
+            return
+
         if card.isSkip() and not self.reversed:
             print("Card is skip and game is not reversed")
             new_player_index = self.number_player_turn + 2
 
             if new_player_index > len(self.players):
                 self.number_player_turn = new_player_index - len(self.players)
+            else:
+                self.number_player_turn = new_player_index
 
         elif card.isSkip() and self.reversed:
             new_player_index = self.number_player_turn - 2
             if new_player_index < 1:
                 self.number_player_turn = new_player_index + len(self.players)
-
+            else:
+                self.number_player_turn = new_player_index
 
         else:
             new_player_index = self.number_player_turn + 1 if not self.reversed else self.number_player_turn - 1
             if new_player_index > len(self.players):
                 self.number_player_turn = 1
             elif new_player_index < 1:
-                 self.number_player_turn = len(self.players)+1
+                 self.number_player_turn = len(self.players)
             else:
                 self.number_player_turn = new_player_index
 
@@ -100,45 +146,48 @@ class Game:
 
     def gameLoop(self):
         if not self.__player_has_won:
-            print(f"The top card in the discard pile is {self.current_card.toString()}")
+            print(f"The top card in the discard pile is {self.current_card.toString()} (COLOUR: {self.current_color})")
             print(f"Player {self.number_player_turn}s turn. Please select your card\n")
 
             player_turn_hand = {i: card for i, card in enumerate(self.players[self.number_player_turn].hand)}
 
 
-
             print("")
             selected_card = self.playerSelectCard(player_turn_hand)
-            self.players[self.number_player_turn].useCard(selected_card)
 
-            print(selected_card.toString(), "VALUE")
+            print(selected_card)
 
-            if selected_card.isWild() or selected_card.isPlusFour():
-                self.selecteNewColour()
+            if selected_card != False:
+                self.players[self.number_player_turn].useCard(selected_card)
 
-            if selected_card.isPlusTwo():
-                self.pickup_card_played = True
+                print(selected_card.toString(), "VALUE")
 
-            if selected_card.isReverse():
-                self.reversed = not self.reversed
+                if selected_card.isWild() or selected_card.isPlusFour():
+                    if selected_card.isPlusFour() and self.pickup_card_played:
+                        self.pick_up_multiplier += 1
+                    self.selecteNewColour()
+
+                if selected_card.isPlusTwo():
+                    if self.pickup_card_played:
+                        self.pick_up_multiplier += 1
+                    self.pickup_card_played = True
+
+                if selected_card.isReverse():
+                    self.reversed = not self.reversed
 
 
-            self.pickup_card_played = self.checkIfNextPlayerNeedsToPickUp(selected_card)
-            print(f"Next player needs to pickup card = {self.pickup_card_played}")
+                self.pickup_card_played = self.checkIfNextPlayerNeedsToPickUp(selected_card)
+                print(f"Next player needs to pickup card = {self.pickup_card_played}")
 
-            self.current_card = selected_card
+                self.current_card = selected_card
 
-    
-            if selected_card.color != None:
-                self.current_color = selected_card.color
+                if selected_card.color != None:
+                    self.current_color = selected_card.color
 
 
             self.selectNextPlayer(selected_card)
-
             print(f"Current length of deck {len(self.deck)}")
-
-
-
+            input("Press enter to end go...")
             self.gameLoop()
 
 
@@ -152,8 +201,18 @@ class Game:
             if play == "y":
                 return new_card
             else:
+                print("You cannot play this card either")
                 return None
 
+    def PickUpNCards(self, numcards):
+        input(f"You need to pickup {numcards*self.pick_up_multiplier} cards. press enter to continue.")
+        for _ in range(numcards*self.pick_up_multiplier):
+            new_card = self.deck.pullCard()
+            print(f"You recieved a {new_card.toString()}")
+            self.players[self.number_player_turn].addCard(new_card)
+
+        self.pickup_card_played = False
+        self.pick_up_multiplier = 1
 
 
     def CheckIfCardCanBePlaced(self, card):
@@ -162,8 +221,8 @@ class Game:
             if card.value == self.current_card.value:
                 return True
             else:
-                print("You cannot play card")
-                input()
+                return False
+
 
         # Lets first go trough each case when the current card is a number card
         if self.current_card.value == card.value or self.current_color == card.color:
@@ -182,11 +241,17 @@ class Game:
             if self.CheckIfCardCanBePlaced(hand[i]):
                 card_able_to_play += 1
 
-        if card_able_to_play == 0:
-            choice = self.playerPickUpCard()
+        print(card_able_to_play, self.pickup_card_played)
 
-            if choice:
-                return True
+        if card_able_to_play == 0 and self.pickup_card_played:
+            self.PickUpNCards(4 if self.current_card.isPlusFour() else 2)
+            return False
+
+        if card_able_to_play == 0:
+            card = self.playerPickUpCard()
+
+            if card:
+                return card
             else:
                 return False
 
