@@ -151,14 +151,15 @@ class Game:
 
             player_turn_hand = {i: card for i, card in enumerate(self.players[self.number_player_turn].hand)}
 
-
             print("")
             selected_card = self.playerSelectCard(player_turn_hand)
 
-            print(selected_card)
-
             if selected_card != False:
                 self.players[self.number_player_turn].useCard(selected_card)
+
+                if self.players[self.number_player_turn].hasWon():
+                    print(f"Player {self.number_player_turn} has won!")
+                    quit()
 
                 print(selected_card.toString(), "VALUE")
 
@@ -188,6 +189,9 @@ class Game:
             self.selectNextPlayer(selected_card)
             print(f"Current length of deck {len(self.deck)}")
             input("Press enter to end go...")
+
+
+
             self.gameLoop()
 
 
