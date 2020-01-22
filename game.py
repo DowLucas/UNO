@@ -18,6 +18,8 @@ class Game:
         self.players = {i: Player() for i in range(1, num_players+1)}
         self.deck = Deck()
 
+        #self.deck.makeShorter(20)
+
 
 
 
@@ -32,6 +34,7 @@ class Game:
 
         self.current_card = self.deck.pullCard()
         self.current_color = self.current_card.color
+        self.discard_pile.append(self.current_card)
         
         if self.current_card == None:
             self.current_card = random.choice(self.deck.colors)
@@ -180,10 +183,16 @@ class Game:
                 self.pickup_card_played = self.checkIfNextPlayerNeedsToPickUp(selected_card)
                 print(f"Next player needs to pickup card = {self.pickup_card_played}")
 
+                self.discard_pile.append(selected_card)
                 self.current_card = selected_card
 
                 if selected_card.color != None:
                     self.current_color = selected_card.color
+
+                if self.deck.isEmpty():
+                    self.deck.shuffle(self.discard_pile[-1:])
+                    self.discard_pile = [self.discard_pile[-1]]
+
 
 
             self.selectNextPlayer(selected_card)
@@ -262,7 +271,7 @@ class Game:
 
 
 
-game = Game(4)
+game = Game(2)
 
 
 

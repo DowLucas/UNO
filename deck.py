@@ -42,6 +42,15 @@ class Deck:
         self.deck.remove(card)
         return card
 
+    def isEmpty(self):
+        return True if len(self) == 0 else False
+
+    def makeShorter(self, index):
+        self.deck = self.deck[:index]
+
+    def shuffle(self, discard_cards):
+        random.shuffle(discard_cards)
+        self.deck = discard_cards
 
     def __len__(self):
         return len(self.deck)
